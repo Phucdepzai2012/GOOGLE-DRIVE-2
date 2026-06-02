@@ -20,6 +20,7 @@
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
+            user-select: none;
         }
 
         /* --- Header --- */
@@ -38,6 +39,7 @@
             align-items: center;
             gap: 12px;
             min-width: 240px;
+            cursor: pointer;
         }
 
         .header-left img {
@@ -98,13 +100,17 @@
             height: calc(100vh - 64px);
         }
 
-        /* Sidebar Left */
         sidebar {
             width: 256px;
             padding: 16px 8px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 8px;
+        }
+
+        .dropdown-new {
+            position: relative;
+            margin-bottom: 12px;
         }
 
         .btn-new {
@@ -127,6 +133,33 @@
         .btn-new:hover {
             background-color: #f1f3f4;
             box-shadow: 0 4px 8px 3px rgba(60,64,67,0.15), 0 1px 3px 0 rgba(60,64,67,0.3);
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 50px;
+            left: 0;
+            background-color: white;
+            min-width: 180px;
+            box-shadow: 0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
+            border-radius: 8px;
+            z-index: 10;
+            padding: 6px 0;
+        }
+
+        .dropdown-item {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #3c4043;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f1f3f4;
         }
 
         .menu-list {
@@ -153,6 +186,10 @@
             font-weight: 500;
         }
 
+        .menu-item:hover:not(.active) {
+            background-color: #f1f3f4;
+        }
+
         .storage-info {
             margin-top: auto;
             padding: 16px;
@@ -160,7 +197,7 @@
             color: #5f6368;
         }
 
-        /* Content Area Right */
+        /* --- Content Area --- */
         .content-area {
             flex: 1;
             background-color: #ffffff;
@@ -172,20 +209,36 @@
             display: flex;
             flex-direction: column;
             overflow-y: auto;
+            position: relative;
         }
 
-        .content-title {
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 4px;
             font-size: 18px;
-            font-weight: 400;
             margin-bottom: 20px;
-            color: #202124;
+            color: #5f6368;
         }
 
-        /* Grid hiển thị File */
+        .breadcrumb span.active-path {
+            color: #202124;
+            font-weight: 400;
+            cursor: pointer;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #5f6368;
+            margin: 16px 0 8px 0;
+        }
+
         .file-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 16px;
+            margin-bottom: 24px;
         }
 
         .file-card {
@@ -198,13 +251,28 @@
             gap: 8px;
             cursor: pointer;
             position: relative;
-            transition: background-color 0.2s;
-            text-decoration: none;
-            color: inherit;
+            transition: background-color 0.15s, box-shadow 0.15s;
         }
 
         .file-card:hover {
             background-color: #edf2fa;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .folder-card {
+            flex-direction: row;
+            align-items: center;
+            padding: 14px;
+        }
+
+        .folder-card .folder-icon {
+            color: #5f6368;
+            font-size: 24px;
+            margin-right: 8px;
+        }
+
+        .folder-card.starred .folder-icon {
+            color: #fbbc04; /* Đổi màu thư mục ghim sang vàng */
         }
 
         .file-icon-wrapper {
@@ -227,8 +295,9 @@
         .file-info {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
             justify-content: space-between;
+            width: 100%;
         }
 
         .file-name {
@@ -240,24 +309,55 @@
             flex: 1;
         }
 
-        .btn-delete {
-            border: none;
-            background: transparent;
-            color: #cc0000;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
+        .star-indicator {
+            color: #fbbc04;
+            font-size: 16px;
+            display: none;
+        }
+
+        .file-card.starred .star-indicator {
+            display: inline-block;
         }
 
         #file-upload-input {
             display: none;
+        }
+
+        /* --- MENU CHUỘT PHẢI CUSTOM --- */
+        .context-menu {
+            display: none;
+            position: absolute;
+            background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            padding: 6px 0;
+            z-index: 1000;
+            min-width: 160px;
+        }
+
+        .context-menu-item {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #3c4043;
+            cursor: pointer;
+        }
+
+        .context-menu-item:hover {
+            background-color: #f1f3f4;
+        }
+
+        .context-menu-item.delete-item {
+            color: #d93025;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="header-left">
+        <div class="header-left" onclick="navigateToHome()">
             <img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo.png" alt="Drive Logo">
             <span>Drive</span>
         </div>
@@ -275,16 +375,30 @@
 
     <div class="main-container">
         <sidebar>
-            <button class="btn-new" onclick="triggerUpload()">
-                <span class="material-icons-outlined">add</span>
-                Tải tệp lên
-            </button>
+            <div class="dropdown-new">
+                <button class="btn-new" onclick="toggleDropdown()">
+                    <span class="material-icons-outlined">add</span>
+                    Mới
+                </button>
+                <div class="dropdown-content" id="new-dropdown">
+                    <div class="dropdown-item" onclick="createNewFolder()">
+                        <span class="material-icons-outlined">folder_open</span> Thư mục mới
+                    </div>
+                    <div class="dropdown-item" onclick="triggerUpload()">
+                        <span class="material-icons-outlined">upload_file</span> Tải tệp lên
+                    </div>
+                </div>
+            </div>
             <input type="file" id="file-upload-input" multiple onchange="handleFileUpload(this.files)">
 
             <ul class="menu-list">
-                <li class="menu-item active">
+                <li class="menu-item active" id="menu-root" onclick="changeTab('root')">
                     <span class="material-icons-outlined">folder</span>
                     <span>Drive của trường</span>
+                </li>
+                <li class="menu-item" id="menu-starred" onclick="changeTab('starred')">
+                    <span class="material-icons-outlined">star_border</span>
+                    <span>Có gắn dấu sao (Ghim)</span>
                 </li>
             </ul>
 
@@ -294,163 +408,382 @@
             </div>
         </sidebar>
 
-        <main class="content-area">
-            <h2 class="content-title" id="title-status">Drive chung hệ thống</h2>
-            <div class="file-grid" id="file-display-grid">
-                </div>
+        <main class="content-area" id="main-content-zone">
+            <div class="breadcrumb" id="drive-breadcrumb">
+                <span class="active-path" onclick="navigateToHome()">Drive của trường</span>
+            </div>
+            
+            <h2 id="title-status" style="display:none; font-size:14px; color:#1a73e8; margin-bottom:10px;">⏳ Đang xử lý tệp tin...</h2>
+
+            <div id="folder-section-wrapper">
+                <div class="section-title">Thư mục</div>
+                <div class="file-grid" id="folder-display-grid"></div>
+            </div>
+
+            <div id="file-section-wrapper">
+                <div class="section-title">Tệp tin</div>
+                <div class="file-grid" id="file-display-grid"></div>
+            </div>
         </main>
     </div>
 
-    <script>
-        let allFilesDatabase = [];
+    <div class="context-menu" id="custom-context-menu">
+        <div class="context-menu-item" onclick="contextStarToggle()">
+            <span class="material-icons-outlined" id="ctx-star-icon">star_border</span> <span id="ctx-star-text">Ghim / Bỏ Ghim</span>
+        </div>
+        <div class="context-menu-item" onclick="contextRename()">
+            <span class="material-icons-outlined">edit</span> Đổi tên
+        </div>
+        <hr style="border:0; border-top:1px solid #e0e0e0; margin:4px 0;">
+        <div class="context-menu-item delete-item" onclick="contextDelete()">
+            <span class="material-icons-outlined">delete</span> Xóa mục này
+        </div>
+    </div>
 
-        // Khi load lại trang (F5), nạp lại toàn bộ file cũ lên màn hình không lo bị mất
-        window.onload = function() {
-            const savedData = localStorage.getItem('school_drive_cloud_db');
-            if (savedData) {
-                allFilesDatabase = JSON.parse(savedData);
-                renderGrid(allFilesDatabase);
+    <script>
+        // SỬ DỤNG SẴN SÀNG INDEXEDDB ĐỂ LƯU FILE DUNG LƯỢNG LỚN KHÔNG LỖI ẢNH
+        let dbInstance;
+        let driveItems = [];
+        let currentFolderId = "root";
+        let currentTab = "root";
+        let rightClickedItemId = null; // Lưu trữ ID mục vừa click chuột phải
+
+        // Khởi tạo Hệ cơ sở dữ liệu trình duyệt siêu lớn IndexedDB
+        const request = indexedDB.open("SchoolDriveDatabase", 1);
+        request.onupgradeneeded = function(e) {
+            let db = e.target.result;
+            if (!db.objectStoreNames.contains("items")) {
+                db.createObjectStore("items", { keyPath: "id" });
             }
         };
+        request.onsuccess = function(e) {
+            dbInstance = e.target.result;
+            loadDataFromIndexedDB();
+        };
+
+        function loadDataFromIndexedDB() {
+            const transaction = dbInstance.transaction(["items"], "readonly");
+            const store = transaction.objectStore("items");
+            const getAll = store.getAll();
+            getAll.onsuccess = function() {
+                driveItems = getAll.result || [];
+                renderUI();
+            };
+        }
+
+        function saveItemToDB(item) {
+            const transaction = dbInstance.transaction(["items"], "readwrite");
+            const store = transaction.objectStore("items");
+            store.put(item);
+        }
+
+        function deleteItemFromDB(id) {
+            const transaction = dbInstance.transaction(["items"], "readwrite");
+            const store = transaction.objectStore("items");
+            store.delete(id);
+        }
+
+        // Dropdown menu "Mới"
+        function toggleDropdown() {
+            const dd = document.getElementById('new-dropdown');
+            dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+        }
 
         function triggerUpload() {
             document.getElementById('file-upload-input').click();
         }
 
-        // Xử lý upload thông minh, chống đứng trang, chống sập
+        // Tạo thư mục mới
+        function createNewFolder() {
+            const folderName = prompt("Nhập tên thư mục mới:");
+            if (!folderName || folderName.trim() === "") return;
+
+            const newFolder = {
+                id: "folder_" + Date.now() + Math.random(),
+                name: folderName.trim(),
+                isFolder: true,
+                parentId: currentFolderId,
+                isStarred: false
+            };
+
+            driveItems.push(newFolder);
+            saveItemToDB(newFolder);
+            renderUI();
+        }
+
+        // Tải file xử lý ảnh gốc dung lượng lớn không bug
         async function handleFileUpload(files) {
             const statusTitle = document.getElementById('title-status');
+            statusTitle.style.display = "block";
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                statusTitle.textContent = `⏳ Đang tải lên: ${file.name}...`;
+                statusTitle.textContent = `⏳ Đang lưu tệp: ${file.name}...`;
 
-                let fileUrl = "#";
-                let filePreview = "";
+                let fileDataUrl = await fileToBase64(file);
 
-                // NẾU LÀ FILE ẢNH: Tự động đẩy lên server đám mây Imgur ẩn lấy link gốc vĩnh viễn
-                if (file.type.startsWith('image/')) {
-                    try {
-                        const formData = new FormData();
-                        formData.append('image', file);
-
-                        const res = await fetch('https://api.imgur.com/3/image', {
-                            method: 'POST',
-                            headers: { Authorization: 'Client-ID fc95b9a89725b81' }, // Kho lưu trữ ảnh cộng đồng miễn phí
-                            body: formData
-                        });
-                        const data = await res.json();
-                        if(data.success) {
-                            fileUrl = data.data.link;
-                            filePreview = data.data.link; // Link xem trực tiếp siêu nhanh
-                        }
-                    } catch (err) {
-                        // Nếu mạng lỗi, dùng giải pháp backup nội bộ
-                        filePreview = await fileToBase64(file);
-                    }
-                } else {
-                    // NẾU LÀ FILE KHÁC (Tài liệu, zip, exe, v.v.): Mã hóa chuỗi nhị phân lưu trữ an toàn
-                    filePreview = await fileToBase64(file);
-                }
-
-                // Cấu trúc dữ liệu lưu trữ đám mây
-                const fileObject = {
-                    id: Date.now() + Math.random(),
+                const newFile = {
+                    id: "file_" + Date.now() + Math.random(),
                     name: file.name,
+                    isFolder: false,
                     type: file.type,
-                    link: fileUrl,
-                    preview: filePreview
+                    preview: fileDataUrl, // Lưu data URL dung lượng cao vào IndexedDB cực mượt
+                    parentId: currentFolderId,
+                    isStarred: false
                 };
 
-                allFilesDatabase.push(fileObject);
-                localStorage.setItem('school_drive_cloud_db', JSON.stringify(allFilesDatabase));
-                renderGrid(allFilesDatabase);
+                driveItems.push(newFile);
+                saveItemToDB(newFile);
             }
-            statusTitle.textContent = "Drive chung hệ thống";
+            statusTitle.style.display = "none";
+            renderUI();
         }
 
-        // Vẽ tệp tin lên màn hình
-        function renderGrid(filesArray) {
-            const grid = document.getElementById('file-display-grid');
-            grid.innerHTML = "";
+        // Vẽ giao diện hiển thị thư mục / tệp tin
+        function renderUI() {
+            const folderGrid = document.getElementById('folder-display-grid');
+            const fileGrid = document.getElementById('file-display-grid');
+            folderGrid.innerHTML = "";
+            fileGrid.innerHTML = "";
 
-            filesArray.forEach(file => {
-                const card = document.createElement('div');
-                card.className = 'file-card';
-                
-                const iconWrapper = document.createElement('div');
-                iconWrapper.className = 'file-icon-wrapper';
+            let displayedItems = [];
+            if (currentTab === "starred") {
+                displayedItems = driveItems.filter(i => i.isStarred);
+                document.getElementById('drive-breadcrumb').innerHTML = "Mục có gắn dấu sao (Ghim)";
+            } else {
+                displayedItems = driveItems.filter(i => i.parentId === currentFolderId);
+                buildBreadcrumb();
+            }
 
-                // Kiểm tra định dạng hiển thị ảnh xem trước giống Google Drive thật
-                if (file.type && file.type.startsWith('image/') && file.preview) {
-                    const img = document.createElement('img');
-                    img.src = file.preview;
-                    iconWrapper.appendChild(img);
+            let hasFolder = false;
+            let hasFile = false;
+
+            displayedItems.forEach(item => {
+                const starClass = item.isStarred ? "starred" : "";
+
+                if (item.isFolder) {
+                    hasFolder = true;
+                    const card = document.createElement('div');
+                    card.className = `file-card folder-card ${starClass}`;
+                    card.setAttribute('data-id', item.id);
+                    
+                    card.innerHTML = `
+                        <span class="material-icons-outlined folder-icon">folder</span>
+                        <span class="file-name" title="Nhấp đúp hoặc click chuột phải">${item.name}</span>
+                        <span class="material-icons-outlined star-indicator">star</span>
+                    `;
+                    // Click đúp hoặc nhấn để mở thư mục
+                    card.onclick = () => openFolder(item.id);
+                    // Lắng nghe sự kiện chuột phải riêng cho item
+                    card.oncontextmenu = (e) => handleRightClick(e, item.id);
+
+                    folderGrid.appendChild(card);
                 } else {
-                    const icon = document.createElement('span');
-                    icon.className = 'material-icons-outlined';
-                    icon.style.fontSize = "48px";
+                    hasFile = true;
+                    const card = document.createElement('div');
+                    card.className = `file-card ${starClass}`;
+                    card.setAttribute('data-id', item.id);
+
+                    let previewContent = `<span class="material-icons-outlined" style="font-size:48px; color:#1a73e8;">insert_drive_file</span>`;
+                    if (item.type && item.type.startsWith('image/') && item.preview) {
+                        previewContent = `<img src="${item.preview}">`; // Hiện ảnh sắc nét không bị lỗi
+                    } else if (item.name.includes('.zip') || item.name.includes('.rar')) {
+                        previewContent = `<span class="material-icons-outlined" style="font-size:48px; color:#1a73e8;">folder_zip</span>`;
+                    } else if (item.name.includes('.pdf')) {
+                        previewContent = `<span class="material-icons-outlined" style="font-size:48px; color:#cc0000;">picture_as_pdf</span>`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="file-icon-wrapper">${previewContent}</div>
+                        <div class="file-info">
+                            <span class="file-name" title="${item.name}">${item.name}</span>
+                            <span class="material-icons-outlined star-indicator" style="font-size:16px;">star</span>
+                        </div>
+                    `;
                     
-                    if(file.type && file.type.includes('pdf')) icon.textContent = 'picture_as_pdf';
-                    else if(file.type && file.type.includes('zip') || file.name.includes('.zip') || file.name.includes('.rar')) icon.textContent = 'folder_zip';
-                    else if(file.type && file.type.includes('video') || file.name.includes('.mp4')) icon.textContent = 'video_file';
-                    else icon.textContent = 'insert_drive_file';
-                    
-                    icon.style.color = "#1a73e8";
-                    iconWrapper.appendChild(icon);
+                    // Click để tự động tải ảnh gốc siêu nét về máy tính
+                    card.onclick = () => downloadFile(item);
+                    card.oncontextmenu = (e) => handleRightClick(e, item.id);
+
+                    fileGrid.appendChild(card);
                 }
+            });
 
-                const fileInfo = document.createElement('div');
-                fileInfo.className = 'file-info';
-                
-                const fileName = document.createElement('span');
-                fileName.className = 'file-name';
-                fileName.textContent = file.name;
-                fileName.title = "Bấm để tải về: " + file.name;
+            document.getElementById('folder-section-wrapper').style.display = hasFolder ? 'block' : 'none';
+            document.getElementById('file-section-wrapper').style.display = hasFile ? 'block' : 'none';
 
-                // Nút xóa file nếu đăng nhầm
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'btn-delete';
-                deleteBtn.innerHTML = '<span class="material-icons-outlined" style="font-size:18px;">delete</span>';
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation(); // Không cho kích hoạt sự kiện click tải file
-                    deleteFile(file.id);
-                };
+            if (!hasFolder && !hasFile) {
+                fileGrid.parentElement.style.display = 'block';
+                fileGrid.innerHTML = `<p style="color:#5f6368; font-size:14px; padding:10px;">Thư mục này hiện đang trống.</p>`;
+            }
+        }
 
-                fileInfo.appendChild(fileName);
-                fileInfo.appendChild(deleteBtn);
-                card.appendChild(iconWrapper);
-                card.appendChild(fileInfo);
-                
-                // Bấm vào card để tải file/ảnh về máy
-                card.onclick = () => {
-                    const a = document.createElement('a');
-                    a.href = file.preview;
-                    a.download = file.name;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                };
+        // Tải tệp tin/Ảnh chuẩn cấu trúc gốc không lỗi định dạng
+        function downloadFile(item) {
+            const a = document.createElement('a');
+            a.href = item.preview;
+            a.download = item.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
 
-                grid.appendChild(card);
+        // --- XỬ LÝ MENU CHUỘT PHẢI CHUYÊN NGHIỆP ---
+        function handleRightClick(e, itemId) {
+            e.preventDefault(); // Chặn menu mặc định của trình duyệt web
+            e.stopPropagation();
+            rightClickedItemId = itemId;
+
+            const item = driveItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            // Cập nhật text hiển thị tương ứng trạng thái Ghim
+            document.getElementById('ctx-star-icon').textContent = item.isStarred ? "star" : "star_border";
+            document.getElementById('ctx-star-text').textContent = item.isStarred ? "Bỏ ghim dấu sao" : "Ghim dấu sao";
+
+            const menu = document.getElementById('custom-context-menu');
+            menu.style.display = 'block';
+            menu.style.left = `${e.pageX}px`;
+            menu.style.top = `${e.pageY}px`;
+        }
+
+        // Tắt menu chuột phải khi bấm ra ngoài
+        window.addEventListener('click', () => {
+            document.getElementById('custom-context-menu').style.display = 'none';
+            document.getElementById('new-dropdown').style.display = 'none';
+        });
+
+        // HÀM CHỨC NĂNG CHUỘT PHẢI 1: GHIM / BỎ GHIM
+        function contextStarToggle() {
+            if (!rightClickedItemId) return;
+            const item = driveItems.find(i => i.id === rightClickedItemId);
+            if (item) {
+                item.isStarred = !item.isStarred;
+                saveItemToDB(item);
+                renderUI();
+            }
+        }
+
+        // HÀM CHỨC NĂNG CHUỘT PHẢI 2: ĐỔI TÊN FILE VÀ FOLDER
+        function contextRename() {
+            if (!rightClickedItemId) return;
+            const item = driveItems.find(i => i.id === rightClickedItemId);
+            if (item) {
+                const newName = prompt(`Nhập tên mới cho mục này:`, item.name);
+                if (newName && newName.trim() !== "") {
+                    item.name = newName.trim();
+                    saveItemToDB(item);
+                    renderUI();
+                }
+            }
+        }
+
+        // HÀM CHỨC NĂNG CHUỘT PHẢI 3: XÓA MỤC
+        function contextDelete() {
+            if (!rightClickedItemId) return;
+            if (confirm("Bạn có chắc chắn muốn xóa mục này không?")) {
+                const targetId = rightClickedItemId;
+                // Xóa chính nó khỏi mảng và DB
+                driveItems = driveItems.filter(i => {
+                    if (i.id === targetId || i.parentId === targetId) {
+                        deleteItemFromDB(i.id);
+                        return false;
+                    }
+                    return true;
+                });
+                renderUI();
+            }
+        }
+
+        // Điều hướng thư mục
+        function openFolder(folderId) {
+            currentFolderId = folderId;
+            currentTab = "root";
+            renderUI();
+        }
+
+        function buildBreadcrumb() {
+            const container = document.getElementById('drive-breadcrumb');
+            container.innerHTML = "";
+            let paths = [];
+            let currentId = currentFolderId;
+
+            while (currentId !== "root") {
+                const folder = driveItems.find(i => i.id === currentId);
+                if (folder) {
+                    paths.unshift(folder);
+                    currentId = folder.parentId;
+                } else { break; }
+            }
+
+            const rootSpan = document.createElement('span');
+            rootSpan.className = "active-path";
+            rootSpan.textContent = "Drive của trường";
+            rootSpan.onclick = navigateToHome;
+            container.appendChild(rootSpan);
+
+            paths.forEach(p => {
+                const arrow = document.createElement('span');
+                arrow.textContent = " > ";
+                arrow.style.margin = "0 4px";
+                container.appendChild(arrow);
+
+                const span = document.createElement('span');
+                span.className = "active-path";
+                span.textContent = p.name;
+                span.onclick = () => openFolder(p.id);
+                container.appendChild(span);
             });
         }
 
-        // Tính năng xóa file
-        function deleteFile(id) {
-            allFilesDatabase = allFilesDatabase.filter(f => f.id !== id);
-            localStorage.setItem('school_drive_cloud_db', JSON.stringify(allFilesDatabase));
-            renderGrid(allFilesDatabase);
+        function changeTab(tab) {
+            currentTab = tab;
+            document.getElementById('menu-root').classList.remove('active');
+            document.getElementById('menu-starred').classList.remove('active');
+            if (tab === 'root') {
+                document.getElementById('menu-root').classList.add('active');
+                currentFolderId = "root";
+            } else {
+                document.getElementById('menu-starred').classList.add('active');
+            }
+            renderUI();
         }
 
-        // Tìm kiếm tệp nhanh
+        function navigateToHome() {
+            currentFolderId = "root";
+            changeTab('root');
+        }
+
         function filterFiles() {
             const query = document.getElementById('search-input').value.toLowerCase();
-            const filtered = allFilesDatabase.filter(f => f.name.toLowerCase().includes(query));
-            renderGrid(filtered);
+            if (query.trim() === "") { renderUI(); return; }
+            const filtered = driveItems.filter(item => item.name.toLowerCase().includes(query));
+            
+            const folderGrid = document.getElementById('folder-display-grid');
+            const fileGrid = document.getElementById('file-display-grid');
+            folderGrid.innerHTML = ""; fileGrid.innerHTML = "";
+
+            filtered.forEach(item => {
+                if(item.isFolder) {
+                    document.getElementById('folder-section-wrapper').style.display = 'block';
+                    const card = document.createElement('div');
+                    card.className = 'file-card folder-card';
+                    card.onclick = () => openFolder(item.id);
+                    card.oncontextmenu = (e) => handleRightClick(e, item.id);
+                    card.innerHTML = `<span class="material-icons-outlined folder-icon">folder</span><span class="file-name">${item.name}</span>`;
+                    folderGrid.appendChild(card);
+                } else {
+                    document.getElementById('file-section-wrapper').style.display = 'block';
+                    const card = document.createElement('div');
+                    card.className = 'file-card';
+                    card.onclick = () => downloadFile(item);
+                    card.oncontextmenu = (e) => handleRightClick(e, item.id);
+                    card.innerHTML = `<div class="file-icon-wrapper"><img src="${item.preview}"></div><div class="file-info"><span class="file-name">${item.name}</span></div>`;
+                    fileGrid.appendChild(card);
+                }
+            });
         }
 
-        // Hàm đọc file nhị phân
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
