@@ -105,19 +105,22 @@
             padding: 16px 8px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
 
-        .dropdown-new {
-            position: relative;
+        /* Thiết kế nút bấm trên Sidebar */
+        .sidebar-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
             margin-bottom: 12px;
         }
 
-        .btn-new {
+        .btn-drive-action {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 24px 12px 16px;
+            padding: 12px 20px;
             border: none;
             border-radius: 24px;
             background-color: #ffffff;
@@ -126,40 +129,20 @@
             font-weight: 500;
             box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
             cursor: pointer;
-            transition: box-shadow 0.2s;
-            width: fit-content;
+            transition: box-shadow 0.2s, background-color 0.2s;
+            width: 100%;
+            max-width: 200px;
         }
 
-        .btn-new:hover {
+        .btn-drive-action:hover {
             background-color: #f1f3f4;
             box-shadow: 0 4px 8px 3px rgba(60,64,67,0.15), 0 1px 3px 0 rgba(60,64,67,0.3);
         }
 
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            top: 50px;
-            left: 0;
-            background-color: white;
-            min-width: 180px;
-            box-shadow: 0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
-            border-radius: 8px;
-            z-index: 10;
-            padding: 6px 0;
-        }
-
-        .dropdown-item {
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 14px;
-            color: #3c4043;
-            cursor: pointer;
-        }
-
-        .dropdown-item:hover {
-            background-color: #f1f3f4;
+        /* Màu riêng cho nút Đăng tải lên làm điểm nhấn */
+        .btn-upload-accent {
+            background-color: #ffffff;
+            color: #1a73e8;
         }
 
         .menu-list {
@@ -272,7 +255,7 @@
         }
 
         .folder-card.starred .folder-icon {
-            color: #fbbc04; /* Đổi màu thư mục ghim sang vàng */
+            color: #fbbc04;
         }
 
         .file-icon-wrapper {
@@ -375,20 +358,18 @@
 
     <div class="main-container">
         <sidebar>
-            <div class="dropdown-new">
-                <button class="btn-new" onclick="toggleDropdown()">
-                    <span class="material-icons-outlined">add</span>
-                    Mới
+            <div class="sidebar-buttons">
+                <button class="btn-drive-action btn-upload-accent" onclick="triggerUpload()">
+                    <span class="material-icons-outlined">upload_file</span>
+                    Tải tệp lên
                 </button>
-                <div class="dropdown-content" id="new-dropdown">
-                    <div class="dropdown-item" onclick="createNewFolder()">
-                        <span class="material-icons-outlined">folder_open</span> Thư mục mới
-                    </div>
-                    <div class="dropdown-item" onclick="triggerUpload()">
-                        <span class="material-icons-outlined">upload_file</span> Tải tệp lên
-                    </div>
-                </div>
+                
+                <button class="btn-drive-action" onclick="createNewFolder()">
+                    <span class="material-icons-outlined">create_new_folder</span>
+                    Thư mục mới
+                </button>
             </div>
+            
             <input type="file" id="file-upload-input" multiple onchange="handleFileUpload(this.files)">
 
             <ul class="menu-list">
@@ -441,14 +422,13 @@
     </div>
 
     <script>
-        // SỬ DỤNG SẴN SÀNG INDEXEDDB ĐỂ LƯU FILE DUNG LƯỢNG LỚN KHÔNG LỖI ẢNH
         let dbInstance;
         let driveItems = [];
         let currentFolderId = "root";
         let currentTab = "root";
-        let rightClickedItemId = null; // Lưu trữ ID mục vừa click chuột phải
+        let rightClickedItemId = null; 
 
-        // Khởi tạo Hệ cơ sở dữ liệu trình duyệt siêu lớn IndexedDB
+        // Khởi động lưu trữ vĩnh viễn (vv) thông qua IndexedDB
         const request = indexedDB.open("SchoolDriveDatabase", 1);
         request.onupgradeneeded = function(e) {
             let db = e.target.result;
@@ -483,19 +463,13 @@
             store.delete(id);
         }
 
-        // Dropdown menu "Mới"
-        function toggleDropdown() {
-            const dd = document.getElementById('new-dropdown');
-            dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
-        }
-
         function triggerUpload() {
             document.getElementById('file-upload-input').click();
         }
 
-        // Tạo thư mục mới
+        // Hàm tạo thư mục mới trực tiếp từ nút bấm
         function createNewFolder() {
-            const folderName = prompt("Nhập tên thư mục mới:");
+            const folderName = prompt("Nhập tên thư mục mới cần tạo:");
             if (!folderName || folderName.trim() === "") return;
 
             const newFolder = {
@@ -511,7 +485,7 @@
             renderUI();
         }
 
-        // Tải file xử lý ảnh gốc dung lượng lớn không bug
+        // Tải file tài liệu / file ảnh
         async function handleFileUpload(files) {
             const statusTitle = document.getElementById('title-status');
             statusTitle.style.display = "block";
@@ -527,7 +501,7 @@
                     name: file.name,
                     isFolder: false,
                     type: file.type,
-                    preview: fileDataUrl, // Lưu data URL dung lượng cao vào IndexedDB cực mượt
+                    preview: fileDataUrl, 
                     parentId: currentFolderId,
                     isStarred: false
                 };
@@ -539,7 +513,7 @@
             renderUI();
         }
 
-        // Vẽ giao diện hiển thị thư mục / tệp tin
+        // Hiển thị dữ liệu lên màn hình trang web
         function renderUI() {
             const folderGrid = document.getElementById('folder-display-grid');
             const fileGrid = document.getElementById('file-display-grid');
@@ -569,12 +543,10 @@
                     
                     card.innerHTML = `
                         <span class="material-icons-outlined folder-icon">folder</span>
-                        <span class="file-name" title="Nhấp đúp hoặc click chuột phải">${item.name}</span>
+                        <span class="file-name" title="Nhấp đúp chuột để mở">${item.name}</span>
                         <span class="material-icons-outlined star-indicator">star</span>
                     `;
-                    // Click đúp hoặc nhấn để mở thư mục
                     card.onclick = () => openFolder(item.id);
-                    // Lắng nghe sự kiện chuột phải riêng cho item
                     card.oncontextmenu = (e) => handleRightClick(e, item.id);
 
                     folderGrid.appendChild(card);
@@ -585,8 +557,8 @@
                     card.setAttribute('data-id', item.id);
 
                     let previewContent = `<span class="material-icons-outlined" style="font-size:48px; color:#1a73e8;">insert_drive_file</span>`;
-                    if (item.type && item.type.startsWith('image/') && item.preview) {
-                        previewContent = `<img src="${item.preview}">`; // Hiện ảnh sắc nét không bị lỗi
+                    if (item.type && item.type.startsWith('image/')) {
+                        previewContent = `<img src="${item.preview}">`;
                     } else if (item.name.includes('.zip') || item.name.includes('.rar')) {
                         previewContent = `<span class="material-icons-outlined" style="font-size:48px; color:#1a73e8;">folder_zip</span>`;
                     } else if (item.name.includes('.pdf')) {
@@ -601,7 +573,6 @@
                         </div>
                     `;
                     
-                    // Click để tự động tải ảnh gốc siêu nét về máy tính
                     card.onclick = () => downloadFile(item);
                     card.oncontextmenu = (e) => handleRightClick(e, item.id);
 
@@ -614,11 +585,10 @@
 
             if (!hasFolder && !hasFile) {
                 fileGrid.parentElement.style.display = 'block';
-                fileGrid.innerHTML = `<p style="color:#5f6368; font-size:14px; padding:10px;">Thư mục này hiện đang trống.</p>`;
+                fileGrid.innerHTML = `<p style="color:#5f6368; font-size:14px; padding:10px;">Thư mục này hiện đang trống trống.</p>`;
             }
         }
 
-        // Tải tệp tin/Ảnh chuẩn cấu trúc gốc không lỗi định dạng
         function downloadFile(item) {
             const a = document.createElement('a');
             a.href = item.preview;
@@ -628,16 +598,15 @@
             document.body.removeChild(a);
         }
 
-        // --- XỬ LÝ MENU CHUỘT PHẢI CHUYÊN NGHIỆP ---
+        // Xử lý khi nhấn chuột phải vào thư mục hoặc file
         function handleRightClick(e, itemId) {
-            e.preventDefault(); // Chặn menu mặc định của trình duyệt web
+            e.preventDefault(); 
             e.stopPropagation();
             rightClickedItemId = itemId;
 
             const item = driveItems.find(i => i.id === itemId);
             if (!item) return;
 
-            // Cập nhật text hiển thị tương ứng trạng thái Ghim
             document.getElementById('ctx-star-icon').textContent = item.isStarred ? "star" : "star_border";
             document.getElementById('ctx-star-text').textContent = item.isStarred ? "Bỏ ghim dấu sao" : "Ghim dấu sao";
 
@@ -647,13 +616,12 @@
             menu.style.top = `${e.pageY}px`;
         }
 
-        // Tắt menu chuột phải khi bấm ra ngoài
+        // Đóng menu chuột phải khi bấm ra vùng trống
         window.addEventListener('click', () => {
             document.getElementById('custom-context-menu').style.display = 'none';
-            document.getElementById('new-dropdown').style.display = 'none';
         });
 
-        // HÀM CHỨC NĂNG CHUỘT PHẢI 1: GHIM / BỎ GHIM
+        // Chuột phải -> Ghim (Dấu sao)
         function contextStarToggle() {
             if (!rightClickedItemId) return;
             const item = driveItems.find(i => i.id === rightClickedItemId);
@@ -664,12 +632,12 @@
             }
         }
 
-        // HÀM CHỨC NĂNG CHUỘT PHẢI 2: ĐỔI TÊN FILE VÀ FOLDER
+        // Chuột phải -> Đổi tên
         function contextRename() {
             if (!rightClickedItemId) return;
             const item = driveItems.find(i => i.id === rightClickedItemId);
             if (item) {
-                const newName = prompt(`Nhập tên mới cho mục này:`, item.name);
+                const newName = prompt(`Nhập tên mới:`, item.name);
                 if (newName && newName.trim() !== "") {
                     item.name = newName.trim();
                     saveItemToDB(item);
@@ -678,12 +646,11 @@
             }
         }
 
-        // HÀM CHỨC NĂNG CHUỘT PHẢI 3: XÓA MỤC
+        // Chuột phải -> Xóa
         function contextDelete() {
             if (!rightClickedItemId) return;
             if (confirm("Bạn có chắc chắn muốn xóa mục này không?")) {
                 const targetId = rightClickedItemId;
-                // Xóa chính nó khỏi mảng và DB
                 driveItems = driveItems.filter(i => {
                     if (i.id === targetId || i.parentId === targetId) {
                         deleteItemFromDB(i.id);
@@ -695,7 +662,6 @@
             }
         }
 
-        // Điều hướng thư mục
         function openFolder(folderId) {
             currentFolderId = folderId;
             currentTab = "root";
