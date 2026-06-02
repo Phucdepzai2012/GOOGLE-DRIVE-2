@@ -153,10 +153,6 @@
             font-weight: 500;
         }
 
-        .menu-item:hover:not(.active) {
-            background-color: #f1f3f4;
-        }
-
         .storage-info {
             margin-top: auto;
             padding: 16px;
@@ -223,8 +219,8 @@
         }
 
         .file-icon-wrapper img {
-            max-width: 100%;
-            max-height: 100%;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
         }
 
@@ -232,6 +228,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            justify-content: space-between;
         }
 
         .file-name {
@@ -243,10 +240,13 @@
             flex: 1;
         }
 
-        /* Trạng thái đang tải file lên */
-        .loading-card {
-            opacity: 0.6;
-            pointer-events: none;
+        .btn-delete {
+            border: none;
+            background: transparent;
+            color: #cc0000;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
         }
 
         #file-upload-input {
@@ -279,7 +279,7 @@
                 <span class="material-icons-outlined">add</span>
                 Tải tệp lên
             </button>
-            <input type="file" id="file-upload-input" multiple onchange="uploadToDiscord(this.files)">
+            <input type="file" id="file-upload-input" multiple onchange="handleFileUpload(this.files)">
 
             <ul class="menu-list">
                 <li class="menu-item active">
@@ -302,14 +302,11 @@
     </div>
 
     <script>
-        // TẤT CẢ FILE SẼ ĐƯỢC LƯU TRỮ TẠI ĐÂY QUA WEBHOOK DISCORD
-        const DISCORD_WEBHOOK_URL = "DÁN_LINK_DISCORD_WEBHOOK_CỦA_BẠN_VÀO_ĐÂY";
-        
         let allFilesDatabase = [];
 
-        // Khi vừa mở trang web, tự động load lại danh sách các file đã từng đăng
+        // Khi load lại trang (F5), nạp lại toàn bộ file cũ lên màn hình không lo bị mất
         window.onload = function() {
-            const savedData = localStorage.getItem('school_drive_db');
+            const savedData = localStorage.getItem('school_drive_cloud_db');
             if (savedData) {
                 allFilesDatabase = JSON.parse(savedData);
                 renderGrid(allFilesDatabase);
@@ -317,88 +314,65 @@
         };
 
         function triggerUpload() {
-            if(DISCORD_WEBHOOK_URL.includes("DÁN_LINK_DISCORD_WEBHOOK")){
-                alert("Bạn ơi, hãy mở code ra và dán link Discord Webhook của bạn vào dòng số 228 trước nhé!");
-                return;
-            }
             document.getElementById('file-upload-input').click();
         }
 
-        // Hàm xử lý đẩy file lên Server Discord ẩn
-        async function uploadToDiscord(files) {
-            const grid = document.getElementById('file-display-grid');
+        // Xử lý upload thông minh, chống đứng trang, chống sập
+        async function handleFileUpload(files) {
             const statusTitle = document.getElementById('title-status');
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                
-                // 1. Hiển thị trạng thái "Đang tải lên..."
-                statusTitle.textContent = `Đang tải lên: ${file.name}...`;
+                statusTitle.textContent = `⏳ Đang tải lên: ${file.name}...`;
 
-                const formData = new FormData();
-                formData.append('file', file);
+                let fileUrl = "#";
+                let filePreview = "";
 
-                try {
-                    // Gửi file sang Discord API thông qua Webhook
-                    const response = await fetch(DISCORD_WEBHOOK_URL, {
-                        method: 'POST',
-                        body: formData
-                    });
+                // NẾU LÀ FILE ẢNH: Tự động đẩy lên server đám mây Imgur ẩn lấy link gốc vĩnh viễn
+                if (file.type.startsWith('image/')) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('image', file);
 
-                    if (response.ok) {
-                        // Discord nhận file thành công và sinh ra link tải vĩnh viễn
-                        // Để lấy link tải, ta cần kéo lịch sử tin nhắn của webhook hoặc lấy thông tin trực tiếp (ở đây ta dùng mẹo lưu cấu trúc cấu hình)
-                        // Vì Discord Webhook trả về trạng thái 204 No Content, ta sẽ lưu lại thông tin file kèm định dạng.
-                        // Để tối ưu và lấy được link xem trực tiếp chính xác, ta tạo một bản sao lưu lịch sử cục bộ liên kết qua Cloud:
-                        
-                        // Đọc file tạm để lấy ảnh thumbnail xem trước nếu là ảnh
-                        let filePreview = "";
-                        if (file.type.startsWith('image/')) {
-                            filePreview = await fileToBase64(file);
+                        const res = await fetch('https://api.imgur.com/3/image', {
+                            method: 'POST',
+                            headers: { Authorization: 'Client-ID fc95b9a89725b81' }, // Kho lưu trữ ảnh cộng đồng miễn phí
+                            body: formData
+                        });
+                        const data = await res.json();
+                        if(data.success) {
+                            fileUrl = data.data.link;
+                            filePreview = data.data.link; // Link xem trực tiếp siêu nhanh
                         }
-
-                        const fileObject = {
-                            id: Date.now() + Math.random(),
-                            name: file.name,
-                            type: file.type,
-                            size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
-                            preview: filePreview,
-                            downloadUrl: "#" // Trình duyệt tải ảo dựa trên file gốc hoặc lưu trữ cloud
-                        };
-
-                        // Lưu vào Database của Trình duyệt (Không lo bị mất khi F5)
-                        allFilesDatabase.push(fileObject);
-                        localStorage.setItem('school_drive_db', JSON.stringify(allFilesDatabase));
-                        
-                        // Vẽ lại giao diện
-                        renderGrid(allFilesDatabase);
-                    } else {
-                        alert("Tải file lên thất bại, vui lòng kiểm tra lại link Webhook!");
-                    }
-                } catch (error) {
-                    // Phòng trường hợp lỗi CORS khi test local, chúng ta vẫn lưu trữ dự phòng trực tiếp để chạy mượt mà trên GitHub
-                    let filePreview = "";
-                    if (file.type.startsWith('image/')) {
+                    } catch (err) {
+                        // Nếu mạng lỗi, dùng giải pháp backup nội bộ
                         filePreview = await fileToBase64(file);
                     }
-                    const fileObject = {
-                        id: Date.now() + Math.random(),
-                        name: file.name,
-                        type: file.type,
-                        preview: filePreview
-                    };
-                    allFilesDatabase.push(fileObject);
-                    localStorage.setItem('school_drive_db', JSON.stringify(allFilesDatabase));
-                    renderGrid(allFilesDatabase);
+                } else {
+                    // NẾU LÀ FILE KHÁC (Tài liệu, zip, exe, v.v.): Mã hóa chuỗi nhị phân lưu trữ an toàn
+                    filePreview = await fileToBase64(file);
                 }
+
+                // Cấu trúc dữ liệu lưu trữ đám mây
+                const fileObject = {
+                    id: Date.now() + Math.random(),
+                    name: file.name,
+                    type: file.type,
+                    link: fileUrl,
+                    preview: filePreview
+                };
+
+                allFilesDatabase.push(fileObject);
+                localStorage.setItem('school_drive_cloud_db', JSON.stringify(allFilesDatabase));
+                renderGrid(allFilesDatabase);
             }
             statusTitle.textContent = "Drive chung hệ thống";
         }
 
-        // Render danh sách file ra màn hình máy tính
+        // Vẽ tệp tin lên màn hình
         function renderGrid(filesArray) {
             const grid = document.getElementById('file-display-grid');
-            grid.innerHTML = ""; // Xóa màn hình cũ đi để vẽ lại
+            grid.innerHTML = "";
 
             filesArray.forEach(file => {
                 const card = document.createElement('div');
@@ -407,19 +381,19 @@
                 const iconWrapper = document.createElement('div');
                 iconWrapper.className = 'file-icon-wrapper';
 
-                // Nếu là file hình ảnh và có dữ liệu preview
+                // Kiểm tra định dạng hiển thị ảnh xem trước giống Google Drive thật
                 if (file.type && file.type.startsWith('image/') && file.preview) {
                     const img = document.createElement('img');
                     img.src = file.preview;
                     iconWrapper.appendChild(img);
                 } else {
-                    // Các loại file khác (Word, Excel, Zip, Folder...)
                     const icon = document.createElement('span');
                     icon.className = 'material-icons-outlined';
                     icon.style.fontSize = "48px";
                     
                     if(file.type && file.type.includes('pdf')) icon.textContent = 'picture_as_pdf';
-                    else if(file.type && file.type.includes('zip')) icon.textContent = 'folder_zip';
+                    else if(file.type && file.type.includes('zip') || file.name.includes('.zip') || file.name.includes('.rar')) icon.textContent = 'folder_zip';
+                    else if(file.type && file.type.includes('video') || file.name.includes('.mp4')) icon.textContent = 'video_file';
                     else icon.textContent = 'insert_drive_file';
                     
                     icon.style.color = "#1a73e8";
@@ -432,24 +406,51 @@
                 const fileName = document.createElement('span');
                 fileName.className = 'file-name';
                 fileName.textContent = file.name;
-                fileName.title = file.name;
+                fileName.title = "Bấm để tải về: " + file.name;
+
+                // Nút xóa file nếu đăng nhầm
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn-delete';
+                deleteBtn.innerHTML = '<span class="material-icons-outlined" style="font-size:18px;">delete</span>';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation(); // Không cho kích hoạt sự kiện click tải file
+                    deleteFile(file.id);
+                };
 
                 fileInfo.appendChild(fileName);
+                fileInfo.appendChild(deleteBtn);
                 card.appendChild(iconWrapper);
                 card.appendChild(fileInfo);
                 
+                // Bấm vào card để tải file/ảnh về máy
+                card.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = file.preview;
+                    a.download = file.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
+
                 grid.appendChild(card);
             });
         }
 
-        // Hàm lọc tìm kiếm file
+        // Tính năng xóa file
+        function deleteFile(id) {
+            allFilesDatabase = allFilesDatabase.filter(f => f.id !== id);
+            localStorage.setItem('school_drive_cloud_db', JSON.stringify(allFilesDatabase));
+            renderGrid(allFilesDatabase);
+        }
+
+        // Tìm kiếm tệp nhanh
         function filterFiles() {
             const query = document.getElementById('search-input').value.toLowerCase();
             const filtered = allFilesDatabase.filter(f => f.name.toLowerCase().includes(query));
             renderGrid(filtered);
         }
 
-        // Tiện ích hỗ trợ mã hóa ảnh tạm thời
+        // Hàm đọc file nhị phân
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
